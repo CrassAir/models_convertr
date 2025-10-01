@@ -1,0 +1,28 @@
+description: Ultralytics YOLO11n model trained on ttn_dataset/dataset.yaml
+author: Ultralytics
+date: '2025-10-01T18:38:29.176151'
+version: 8.3.204
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 1024
+- 1024
+names:
+  0: cargo_name
+  1: cargo_weight
+  2: count
+  3: date
+  4: document_number
+  5: receiver
+  6: sender
+  7: stamp
+args:
+  batch: 1
+  fraction: 1.0
+  half: false
+  int8: false
+  nms: false
+channels: 3

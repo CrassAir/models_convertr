@@ -1,0 +1,28 @@
+# Основные зависимости для keras-ocr с Python 3.10.10
+tensorflow>=2.8.0,<2.16.0
+keras<3.0.0
+numpy>=1.21.0,<1.24.0
+opencv-python>=4.5.0
+matplotlib>=3.5.0
+imgaug>=0.4.0
+scipy>=1.7.0
+scikit-learn>=1.0.0
+pillow>=8.0.0
+tqdm>=4.62.0
+shapely>=1.7.0
+pyclipper>=1.2.0
+Polygon3>=3.0.8
+
+# Для обработки изображений и аугментации
+albumentations>=1.1.0
+imageio>=2.9.0
+
+# Для работы с данными
+pandas>=1.3.0
+h5py>=3.6.0
+
+# Для визуализации
+seaborn>=0.11.0
+
+# Если нужна поддержка GPU
+# tensorflow-gpu>=2.8.0,<2.16.0 (заменить tensorflow)

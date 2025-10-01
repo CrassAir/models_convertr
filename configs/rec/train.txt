@@ -1,0 +1,4 @@
+./configs\rec\crops\000000.png	title_gruz_otp
+./configs\rec\crops\000001.png	title_gruz_pol
+./configs\rec\crops\000002.png	table_title
+./configs\rec\crops\000003.png	table_rows

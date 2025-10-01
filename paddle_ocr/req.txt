@@ -1,0 +1,12 @@
+paddle2onnx==1.2.8
+onnx==1.15.0
+onnx-tf==1.10.0
+protobuf==3.20.3
+
+# TensorFlow (совместимая версия)
+tensorflow==2.15.0
+
+# Базовые библиотеки
+numpy==1.24.3
+opencv-python-headless==4.9.0.80
+Pillow==10.3.0

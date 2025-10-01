@@ -1,0 +1,14 @@
+.venv/
+.venv310/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz
+*.pyzw
+smart_build_control_pro/
+dataset/
+TTNdataset.zip
+yolo_test/ttn_dataset/

@@ -1,0 +1,72 @@
+
+Global:
+  use_gpu: false
+  epoch_num: 50
+  save_model_dir: ./output/det
+  pretrained_model: null
+  print_batch_step: 10
+  save_epoch_step: 1
+  checkpoints: null
+  save_inference_dir: null
+  use_visualdl: false
+  infer_img: null
+  # Переопределяйте в -o Train.dataset.label_file_list=['det/train.txt']
+  character_dict_path: null
+
+Architecture:
+  model_type: det
+  algorithm: DB
+  Transform: null
+  Backbone:
+    name: ResNet
+    layers: 18
+  Neck:
+    name: DBFPN
+    out_channels: 256
+  Head:
+    name: DBHead
+    k: 50
+
+Loss:
+  name: DBLoss
+
+Optimizer:
+  name: Adam
+  beta1: 0.9
+  beta2: 0.999
+  lr:
+    learning_rate: 0.001
+
+PostProcess:
+  name: DBPostProcess
+  thresh: 0.3
+  box_thresh: 0.6
+  max_candidates: 1000
+  unclip_ratio: 1.5
+  use_dilation: false
+  score_mode: fast
+
+Metric:
+  name: DetMetric
+
+Train:
+  dataset:
+    name: SimpleDataSet
+    data_dir: .
+    label_file_list: []
+  loader:
+    shuffle: true
+    batch_size_per_card: 4
+    drop_last: true
+    num_workers: 0
+
+Eval:
+  dataset:
+    name: SimpleDataSet
+    data_dir: .
+    label_file_list: []
+  loader:
+    shuffle: false
+    batch_size_per_card: 4
+    drop_last: false
+    num_workers: 0

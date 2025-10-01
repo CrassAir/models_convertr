@@ -1,0 +1,63 @@
+
+Global:
+  use_gpu: false
+  epoch_num: 50
+  save_model_dir: ./output/rec
+  pretrained_model: null
+  print_batch_step: 10
+  save_epoch_step: 1
+  checkpoints: null
+  save_inference_dir: null
+  use_visualdl: false
+  max_text_length: 25
+  character_dict_path: ppocr/utils/dict/cyrillic_dict.txt
+  character_type: ch
+
+Architecture:
+  model_type: rec
+  algorithm: SVTR_LCNet
+  Transform: null
+  Backbone:
+    name: LCNet
+  Neck:
+    name: SVTR
+  Head:
+    name: CTCHead
+
+Loss:
+  name: CTCLoss
+
+Optimizer:
+  name: Adam
+  beta1: 0.9
+  beta2: 0.999
+  lr:
+    learning_rate: 0.0005
+
+PostProcess:
+  name: CTCLabelDecode
+
+Metric:
+  name: RecMetric
+
+Train:
+  dataset:
+    name: SimpleDataSet
+    data_dir: .
+    label_file_list: []
+  loader:
+    shuffle: true
+    batch_size_per_card: 64
+    drop_last: true
+    num_workers: 0
+
+Eval:
+  dataset:
+    name: SimpleDataSet
+    data_dir: .
+    label_file_list: []
+  loader:
+    shuffle: false
+    batch_size_per_card: 64
+    drop_last: false
+    num_workers: 0
