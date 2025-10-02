@@ -8,7 +8,13 @@ __pycache__/
 *.pyz
 *.pywz
 *.pyzw
-smart_build_control_pro/
+smart_build_control_pro/.dart_tool/
+smart_build_control_pro/.pub/
+smart_build_control_pro/build/
+smart_build_control_pro/ios/
+smart_build_control_pro/linux/
+smart_build_control_pro/macos/
+smart_build_control_pro/web/
 dataset/
 TTNdataset.zip
 yolo_test/ttn_dataset/
