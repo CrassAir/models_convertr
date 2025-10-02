@@ -66,7 +66,7 @@ class _DetectionVisualizerPageState extends State<DetectionVisualizerPage> {
                 children: [
                   Icon(Icons.image, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
-                  Text('Выберите изображение для визуализации'),
+                  Text('Выберите ТН'),
                   SizedBox(height: 16),
                   ElevatedButton.icon(onPressed: _pickAndVisualize, icon: Icon(Icons.upload_file), label: Text('Выбрать фото')),
                 ],
@@ -74,8 +74,9 @@ class _DetectionVisualizerPageState extends State<DetectionVisualizerPage> {
             )
           : ListView(
               children: [
-                InteractiveViewer(minScale: 0.5, maxScale: 4.0, child: Center(child: Image.memory(_visualizedImage!))),
+                InteractiveViewer(minScale: 0.5, scaleEnabled: true, maxScale: 4.0, child: Center(child: Image.memory(_visualizedImage!))),
                 if (waybillData != null) Padding(padding: const EdgeInsets.all(32), child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Document number: ${waybillData?.documentNumber}'),
                     Text('Date: ${waybillData?.date}'),

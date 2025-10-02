@@ -1,4 +1,3 @@
-// ocr_service_final.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -46,7 +45,6 @@ class OCRService {
     var original = img.decodeImage(bytes);
     if (original == null) throw StateError('Failed to decode image');
 
-    // Ограничить размер для стабильности
     if (original.width > 2048 || original.height > 2048) {
       final scale = 2048 / max(original.width, original.height);
       original = img.copyResize(original, width: (original.width * scale).round(), height: (original.height * scale).round());
@@ -77,7 +75,6 @@ class OCRService {
       try {
         final rect = det.rect;
 
-        // РАСШИРЯЕМ ТОЛЬКО ШИРИНУ на 20%, высоту минимально (5%)
         const paddingWidth = 0.20; // 20% расширение по ширине
         const paddingHeight = 0.05; // 5% расширение по высоте
 
@@ -93,7 +90,6 @@ class OCRService {
 
         img.Image crop = img.copyCrop(best, x: x, y: y, width: w, height: h);
 
-        // Апскейл с ограничением
         const minWidth = 400;
         const minHeight = 150;
         const maxScale = 4;
@@ -107,7 +103,6 @@ class OCRService {
           debugPrint('Upscaled ${det.className} to ${crop.width}x${crop.height} (${scale}x)');
         }
 
-        // Препроцессинг
         try {
           crop = img.grayscale(crop);
           crop = img.contrast(crop, contrast: 160);
@@ -167,13 +162,11 @@ class OCRService {
     var original = img.decodeImage(bytes);
     if (original == null) throw StateError('Failed to decode image');
 
-    // Ограничить размер
     if (original.width > 2048 || original.height > 2048) {
       final scale = 2048 / max(original.width, original.height);
       original = img.copyResize(original, width: (original.width * scale).round(), height: (original.height * scale).round());
     }
 
-    // Находим лучшую ориентацию
     final candidates = [original, img.copyRotate(original, angle: 180)];
     img.Image best = original;
     double bestScore = -1;
@@ -190,14 +183,12 @@ class OCRService {
     }
 
     final extracted = <String, String>{};
-    List<Detection> rects = [];
     for (final det in bestDetections) {
       try {
         final rect = det.rect;
 
-        // РАСШИРЯЕМ ТОЛЬКО ШИРИНУ на 20%, высоту минимально (5%)
-        const paddingWidth = 0.10; // 20% расширение по ширине
-        const paddingHeight = 0.01; // 5% расширение по высоте
+        const paddingWidth = 0.10; // 10% расширение по ширине
+        const paddingHeight = 0.01; // 1% расширение по высоте
 
         final expandW = rect.width * paddingWidth;
         final expandH = rect.height * paddingHeight;
@@ -213,7 +204,6 @@ class OCRService {
 
         img.Image crop = img.copyCrop(best, x: x, y: y, width: w, height: h);
 
-        // Апскейл с ограничением
         const minWidth = 400;
         const minHeight = 150;
         const maxScale = 4;
@@ -227,7 +217,6 @@ class OCRService {
           debugPrint('Upscaled ${det.className} to ${crop.width}x${crop.height} (${scale}x)');
         }
 
-        // Препроцессинг
         try {
           crop = img.grayscale(crop);
           crop = img.contrast(crop, contrast: 160);
@@ -280,17 +269,14 @@ class OCRService {
       }
     }
 
-    // Рисуем боксы
     final visualized = _drawDetections(best, bestDetections);
 
-    // Конвертируем в bytes
     return (Uint8List.fromList(img.encodeJpg(visualized, quality: 90)),  WaybillData.fromMap(extracted));
   }
 
   img.Image _drawDetections(img.Image src, List<Detection> detections) {
     final result = img.Image.from(src);
 
-    // Цвета для каждого класса
     const classColors = {
       'cargo_name': [255, 0, 0], // Красный
       'cargo_weight': [0, 255, 0], // Зелёный
@@ -306,7 +292,6 @@ class OCRService {
       final rect = det.rect;
       final color = classColors[det.className] ?? [255, 255, 255];
 
-      // Рисуем прямоугольник (толщина 3px)
       img.drawRect(
         result,
         x1: rect.left.toInt(),
@@ -317,7 +302,6 @@ class OCRService {
         thickness: 3,
       );
 
-      // Рисуем фон для текста
       final labelText = '${det.className} ${(det.confidence * 100).toStringAsFixed(0)}%';
       final labelY = max(0, rect.top.toInt() - 20);
 
@@ -330,7 +314,6 @@ class OCRService {
         color: img.ColorRgb8(color[0], color[1], color[2]),
       );
 
-      // Рисуем текст (белый)
       img.drawString(result, labelText, font: img.arial24, x: rect.left.toInt() + 5, y: labelY + 2, color: img.ColorRgb8(255, 255, 255));
     }
 
@@ -445,7 +428,6 @@ class OCRService {
 
     switch (field) {
       case 'date':
-        // Извлекаем дату DD.MM.YYYY
         final m = RegExp(r'(\d{2})[.\/-](\d{2})[.\/-](\d{4})').firstMatch(t);
         if (m != null) {
           return '${m.group(1)}.${m.group(2)}.${m.group(3)}';
@@ -453,7 +435,6 @@ class OCRService {
         return t;
 
       case 'document_number':
-        // Только цифры
         return t.replaceAll(RegExp(r'[^\d]'), '');
 
       case 'cargo_weight':
@@ -465,20 +446,15 @@ class OCRService {
         return t;
 
       case 'count':
-        // Извлекаем первое число
         final m = RegExp(r'\d+').firstMatch(t);
         return m?.group(0) ?? '0';
 
       case 'sender':
       case 'receiver':
-        // 1. Убираем префиксы
         t = t.replaceFirst(RegExp(r'^\d+\.\s*'), '');
-        // 2. Замена латиницы на кириллицу ПЕРЕД lowercase
         t = _fixAllLatinToCyrillic(t);
-        // 3. Очистка мусора
         t = t.replaceAll(RegExp(r'[^\wА-Яа-я0-9\s\-.,()]', unicode: true), ' ');
         t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
-        // 4. Lowercase
         return t.toLowerCase();
 
       case 'cargo_name':
@@ -500,7 +476,6 @@ class OCRService {
   }
 
   String _fixAllLatinToCyrillic(String text) {
-    // Полная таблица замены латиницы на кириллицу
     const replacements = {
       'A': 'А',
       'a': 'а',
@@ -534,7 +509,6 @@ class OCRService {
       result = result.replaceAll(lat, cyr);
     });
 
-    // Специфичные OCR-ошибки
     result = result
         .replaceAll(RegExp(r'[Il1]', caseSensitive: false), 'і')
         .replaceAll(RegExp(r'0(?=[а-яА-Я])', unicode: true), 'о') // 0 → о перед кириллицей
