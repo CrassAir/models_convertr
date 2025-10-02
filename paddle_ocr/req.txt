@@ -7,6 +7,6 @@ protobuf==3.20.3
 tensorflow==2.15.0
 
 # Базовые библиотеки
-numpy==1.24.3
+numpy>=1.24.0,<2.0
 opencv-python-headless==4.9.0.80
 Pillow==10.3.0

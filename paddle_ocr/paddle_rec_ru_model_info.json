@@ -1,0 +1,20 @@
+{
+  "onnx_file": "paddle_rec_ru.onnx",
+  "providers": [
+    "CPUExecutionProvider"
+  ],
+  "inputs": [
+    {
+      "name": "x",
+      "shape": "['DynamicDimension.0', 3, 48, 'DynamicDimension.1']",
+      "type": "tensor(float)"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "softmax_2.tmp_0",
+      "shape": "['DynamicDimension.2', 'DynamicDimension.3', 165]",
+      "type": "tensor(float)"
+    }
+  ]
+}

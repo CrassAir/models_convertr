@@ -80,81 +80,96 @@ def paddle_to_onnx(model_dir, output_name='paddle_rec_ru'):
         raise
 
 def onnx_to_tflite(onnx_file='paddle_rec_ru.onnx', output_name='paddle_rec_ru'):
-    """Конвертация ONNX → TFLite"""
+    """Конвертация ONNX → TFLite используя onnx2tf"""
     print(f"\n🔄 Converting ONNX → TFLite...")
     
     if not os.path.exists(onnx_file):
         raise FileNotFoundError(f"ONNX file not found: {onnx_file}")
     
+    import onnx
+    import tensorflow as tf
+    import shutil
+    import subprocess
+    import sys
+    
+    # Загрузка и упрощение ONNX (опционально)
+    print("   Loading ONNX model...")
+    onnx_model = onnx.load(onnx_file)
+    print(f"   ✅ ONNX loaded")
+    
+    print("   Simplifying...")
     try:
-        import onnx
-        from onnx_tf.backend import prepare
-        import tensorflow as tf
-        
-        # Загрузка ONNX
-        print("   Loading ONNX model...")
-        onnx_model = onnx.load(onnx_file)
-        print(f"   ✅ ONNX loaded")
-        
-        # Упрощение (опционально)
-        print("   Simplifying...")
-        try:
-            import onnxsim
-            onnx_model, check = onnxsim.simplify(onnx_model)
-            if check:
-                print("   ✅ Simplified")
-        except:
-            print("   ⚠️  Skipping simplification")
-        
-        # ONNX → TensorFlow
-        print("   Converting to TensorFlow...")
-        tf_rep = prepare(onnx_model)
-        
-        tf_dir = f'{output_name}_tf'
-        tf_rep.export_graph(tf_dir)
-        print(f"   ✅ TensorFlow saved")
-        
-        # TensorFlow → TFLite
-        print("   Converting to TFLite...")
-        converter = tf.lite.TFLiteConverter.from_saved_model(tf_dir)
-        
-        converter.optimizations = [tf.lite.Optimize.DEFAULT]
-        converter.target_spec.supported_ops = [
-            tf.lite.OpsSet.TFLITE_BUILTINS,
-            tf.lite.OpsSet.SELECT_TF_OPS
+        import onnxsim
+        onnx_model, check = onnxsim.simplify(onnx_model)
+        if check:
+            simplified_file = f'{output_name}_simplified.onnx'
+            onnx.save(onnx_model, simplified_file)
+            onnx_file = simplified_file
+            print("   ✅ Simplified")
+    except Exception as e:
+        print(f"   ⚠️  Skipping simplification: {e}")
+    
+    # ONNX → TensorFlow используя onnx2tf
+    print("   Converting to TensorFlow using onnx2tf...")
+    tf_dir = f'{output_name}_saved_model'
+    
+    try:
+        # Вызов onnx2tf через командную строку
+        cmd = [
+            sys.executable, '-m', 'onnx2tf',
+            '-i', onnx_file,
+            '-o', tf_dir,
+            '-osd'  # Output SavedModel
         ]
-        converter.allow_custom_ops = True
         
-        tflite_model = converter.convert()
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(f"   ✅ TensorFlow SavedModel created")
         
-        # Сохранение
-        tflite_file = f'{output_name}.tflite'
-        with open(tflite_file, 'wb') as f:
-            f.write(tflite_model)
-        
-        size_mb = len(tflite_model) / 1024 / 1024
-        print(f"✅ TFLite saved: {tflite_file} ({size_mb:.2f} MB)")
-        
-        # Очистка
-        print("   Cleaning up...")
-        if os.path.exists(onnx_file):
-            os.remove(onnx_file)
-        if os.path.exists(tf_dir):
-            shutil.rmtree(tf_dir)
-        
-        return True
-        
-    except ImportError as e:
-        print(f"❌ Import error: {e}")
-        print(f"\n   Install dependencies:")
-        print(f"   pip install onnx onnx-tf tensorflow")
+    except subprocess.CalledProcessError as e:
+        print(f"   ❌ onnx2tf conversion failed: {e.stderr}")
         raise
     except Exception as e:
-        print(f"❌ Conversion failed: {e}")
-        import traceback
-        traceback.print_exc()
+        print(f"   ❌ Error: {e}")
         raise
+    
+    # TensorFlow SavedModel → TFLite
+    print("   Converting to TFLite...")
+    converter = tf.lite.TFLiteConverter.from_saved_model(tf_dir)
+    
+    # Настройки оптимизации
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
+    converter.target_spec.supported_ops = [
+        tf.lite.OpsSet.TFLITE_BUILTINS,
+        tf.lite.OpsSet.SELECT_TF_OPS
+    ]
+    converter.allow_custom_ops = True
+    
+    try:
+        tflite_model = converter.convert()
+    except Exception as e:
+        print(f"   ⚠️  Standard conversion failed, trying without optimizations...")
+        # Попытка без оптимизаций
+        converter.optimizations = []
+        tflite_model = converter.convert()
+    
+    # Сохранение TFLite
+    tflite_file = f'{output_name}.tflite'
+    with open(tflite_file, 'wb') as f:
+        f.write(tflite_model)
+    
+    size_mb = len(tflite_model) / 1024 / 1024
+    print(f"✅ TFLite saved: {tflite_file} ({size_mb:.2f} MB)")
+    
+    # Очистка временных файлов
+    print("   Cleaning up...")
+    if os.path.exists(onnx_file) and onnx_file.endswith('_simplified.onnx'):
+        os.remove(onnx_file)
+    if os.path.exists(tf_dir):
+        shutil.rmtree(tf_dir)
+    
+    return True
 
+        
 def main():
     """Основная функция"""
     print("=" * 70)
@@ -162,62 +177,42 @@ def main():
     print("=" * 70)
     print()
     
-    try:
-        # Шаг 1: Найти локальную модель
-        print("Step 1: Find local model")
-        print("-" * 70)
-        model_dir = find_local_model()
-        
-        # Шаг 2: Paddle → ONNX
-        print("\n" + "=" * 70)
-        print("Step 2: Convert Paddle → ONNX")
-        print("=" * 70)
-        paddle_to_onnx(model_dir, 'paddle_rec_ru')
-        
-        # Шаг 3: ONNX → TFLite
-        print("\n" + "=" * 70)
-        print("Step 3: Convert ONNX → TFLite")
-        print("=" * 70)
-        onnx_to_tflite('paddle_rec_ru.onnx', 'paddle_rec_ru')
-        
-        # Успех!
-        print("\n" + "=" * 70)
-        print("✅ CONVERSION COMPLETE!")
-        print("=" * 70)
-        
-        tflite_file = 'paddle_rec_ru.tflite'
-        if os.path.exists(tflite_file):
-            size_mb = os.path.getsize(tflite_file) / 1024 / 1024
-            print(f"\n📦 Generated file:")
-            print(f"   📄 {tflite_file} ({size_mb:.2f} MB)")
-            print(f"\n📋 Integration:")
-            print(f"   1. Copy to Flutter:")
-            print(f"      cp {tflite_file} your_app/assets/models/")
-            print(f"   2. Update pubspec.yaml:")
-            print(f"      flutter:")
-            print(f"        assets:")
-            print(f"          - assets/models/{tflite_file}")
-        
-        return 0
-        
-    except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted")
-        return 1
-    except Exception as e:
-        print(f"\n" + "=" * 70)
-        print("❌ ERROR")
-        print("=" * 70)
-        print(f"{e}")
-        print(f"\n🔧 Troubleshooting:")
-        print(f"   1. Check directory structure:")
-        print(f"      paddle_ocr/")
-        print(f"      ├── models/")
-        print(f"      │   ├── inference.pdmodel")
-        print(f"      │   └── inference.pdiparams")
-        print(f"      └── main.py")
-        print(f"   2. Install dependencies:")
-        print(f"      pip install paddle2onnx onnx onnx-tf tensorflow")
-        return 1
+    # Шаг 1: Найти локальную модель
+    print("Step 1: Find local model")
+    print("-" * 70)
+    model_dir = find_local_model()
+    
+    # # Шаг 2: Paddle → ONNX
+    # print("\n" + "=" * 70)
+    # print("Step 2: Convert Paddle → ONNX")
+    # print("=" * 70)
+    # paddle_to_onnx(model_dir, 'paddle_rec_ru')
+    
+    # Шаг 3: ONNX → TFLite
+    print("\n" + "=" * 70)
+    print("Step 3: Convert ONNX → TFLite")
+    print("=" * 70)
+    onnx_to_tflite('paddle_rec_ru.onnx', 'paddle_rec_ru')
+    
+    # Успех!
+    print("\n" + "=" * 70)
+    print("✅ CONVERSION COMPLETE!")
+    print("=" * 70)
+    
+    tflite_file = 'paddle_rec_ru.tflite'
+    if os.path.exists(tflite_file):
+        size_mb = os.path.getsize(tflite_file) / 1024 / 1024
+        print(f"\n📦 Generated file:")
+        print(f"   📄 {tflite_file} ({size_mb:.2f} MB)")
+        print(f"\n📋 Integration:")
+        print(f"   1. Copy to Flutter:")
+        print(f"      cp {tflite_file} your_app/assets/models/")
+        print(f"   2. Update pubspec.yaml:")
+        print(f"      flutter:")
+        print(f"        assets:")
+        print(f"          - assets/models/{tflite_file}")
+    
+    return 0
 
 if __name__ == '__main__':
     import sys
